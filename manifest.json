@@ -1,6 +1,6 @@
 {
-  "name": "Swipe Game",
-  "short_name": "Swipe",
+  "name": "地球でかくしよう",
+  "short_name": "地球",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#000000",
