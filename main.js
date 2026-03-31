@@ -20,6 +20,10 @@ let score = 0;
 let visualRotation = 0;
 let visualRotSpeed = 0;
 let visualTailSpeed = 0;
+// =====================
+// 成長ブースト（倍速用）
+// =====================
+let growthBoost = 5; // 通常は1、倍速で5とかにする
 //当たり判定
 let debugHit = false;
 // =====================
@@ -32,12 +36,24 @@ const moonImg    = new Image();
 const marsImg    = new Image();
 const jupiterImg = new Image();
 const sunImg     = new Image();
+const mercuryImg = new Image();
+const venusImg   = new Image();
+const saturnImg  = new Image();
+const uranusImg  = new Image();
+const neptuneImg = new Image();
+const plutoImg   = new Image();
 
 earthImg.src   = BASE_PATH + "earth.png";
 moonImg.src    = BASE_PATH + "moon.png";
 marsImg.src    = BASE_PATH + "mars.png";
 jupiterImg.src = BASE_PATH + "jupiter.png";
 sunImg.src     = BASE_PATH + "sun.png";
+mercuryImg.src = BASE_PATH + "mercury.png";
+venusImg.src   = BASE_PATH + "venus.png";
+saturnImg.src  = BASE_PATH + "saturn.png";
+uranusImg.src  = BASE_PATH + "uranus.png";
+neptuneImg.src = BASE_PATH + "neptune.png";
+plutoImg.src   = BASE_PATH + "pluto.png";
 // =====================
 // 惑星データ（完全版）
 // =====================
@@ -53,7 +69,33 @@ const PLANET_DATA = {
     unlockRadius: 0,
 
     img: moonImg,
-    scaleFix: 1.05
+    scaleFix: 1.2
+  },
+
+  mercury: {
+    name: "水星",
+    type: "circle",
+    size: 500,
+    reward: 40,
+    orbitRadius: 2500,
+    orbitSpeed: 0.002,
+    unlockRadius: 0,
+
+    img: mercuryImg,
+    scaleFix: 1.0
+  },
+
+  venus: {
+    name: "金星",
+    type: "circle",
+    size: 100,
+    reward: 70,
+    orbitRadius: 2000,
+    orbitSpeed: -0.001,
+    unlockRadius: 0,
+
+    img: venusImg,
+    scaleFix: 1.1
   },
 
   mars: {
@@ -79,7 +121,59 @@ const PLANET_DATA = {
     unlockRadius: 0,
 
     img: jupiterImg,
-    scaleFix: 1.15   // ← 見た目ちょいデカ
+    scaleFix: 1.35
+  },
+
+  saturn: {
+    name: "土星",
+    type: "circle",
+    size: 1200,
+    reward: 150,
+    orbitRadius: 6000,
+    orbitSpeed: -0.01,
+    unlockRadius: 0,
+
+    img: saturnImg,
+    scaleFix: 1.4
+  },
+
+  uranus: {
+    name: "天王星",
+    type: "circle",
+    size: 900,
+    reward: 180,
+    orbitRadius: 7500,
+    orbitSpeed: 0.0015,
+    unlockRadius: 0,
+
+    img: uranusImg,
+    scaleFix: 1.2
+  },
+
+  neptune: {
+    name: "海王星",
+    type: "circle",
+    size: 850,
+    reward: 200,
+    orbitRadius: 8500,
+    orbitSpeed: -0.001,
+    unlockRadius: 0,
+
+    img: neptuneImg,
+    scaleFix: 1.2
+  },
+
+  pluto: {
+    name: "冥王星",
+    type: "circle",
+    size: 2000,
+    reward: 30,
+    orbitRadius: 7000,
+    orbitSpeed: 0.004,
+    unlockRadius: 0,
+
+    img: plutoImg,
+    scaleFix: 1.0
   },
 
   sun: {
@@ -92,7 +186,7 @@ const PLANET_DATA = {
     unlockRadius: 0,
 
     img: sunImg,
-    scaleFix: 1.1
+    scaleFix: 1.5
   }
 
 };
@@ -105,6 +199,10 @@ let spawnTimer = 0;
 // 惑星インスタンス
 // =====================
 let planets = [];
+// =====================
+// エフェクト
+// =====================
+let effects = [];
 
 // =====================
 // 初期生成（とりあえず
@@ -442,25 +540,37 @@ objs.forEach(o => {
       const dist = Math.sqrt(o.x * o.x + o.y * o.y);
       const hitDist = earthRadius + o.size * 0.5;
       if (dist <= hitDist) {
-
-      // =====================
-      // 緑 → 成長
-      // =====================
+        // =====================
+        //    緑とった時
+        // =====================
       if (o.type === "energy") {
+        earthRadius += 2 * growthBoost;
+        score += 2 * growthBoost;
 
-          earthRadius += 2;
-          score += 2;
-        }
+        // =====================
+        // 緑エフェクト
+        // =====================
+        effects.push({
+          color: "green",
+          life: 20
+        });
+      }
       // =====================
       // 赤 → 縮小
       // =====================
       if (o.type === "trash") {
-
         earthRadius -= 2;
         earthRadius = Math.max(20, earthRadius);
         score -= 1;
-      }
 
+        // =====================
+        // 赤エフェクト
+        // =====================
+       effects.push({
+          color: "red",
+          life: 15
+        });
+      }
       return false;
     }
     // =====================
@@ -650,6 +760,48 @@ planets.forEach(p => {
 
 });
 ctx.restore();
+// // =====================
+// // エフェクト描画（ぼかしリング版）
+// // =====================
+// effects.forEach((e, i) => {
+
+//   const alpha = e.life / 20;
+
+//   ctx.save();
+//   ctx.translate(canvas.width / 2, canvas.height / 2);
+
+//   const radius = earthRadius * cameraScale + 10;
+
+//   // 色
+//   const color = e.color === "green"
+//     ? `0,255,120`
+//     : `255,80,80`;
+
+//   // 🔥 リンググラデーション
+//   const grad = ctx.createRadialGradient(
+//     0, 0, radius - 20,  // 内側
+//     0, 0, radius        // 外側
+//   );
+
+//   grad.addColorStop(0, `rgba(${color}, 0)`);
+//   grad.addColorStop(0.6, `rgba(${color}, ${alpha * 0.3})`);
+//   grad.addColorStop(1, `rgba(${color}, 0)`);
+
+//   ctx.fillStyle = grad;
+
+//   ctx.beginPath();
+//   ctx.arc(0, 0, radius, 0, Math.PI * 2);
+//   ctx.fill();
+
+//   ctx.restore();
+
+//   e.life--;
+
+//   if (e.life <= 0) {
+//     effects.splice(i, 1);
+//   }
+
+// });
  // =====================
  // スコア表示
  // =====================
